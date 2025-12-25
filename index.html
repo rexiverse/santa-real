@@ -1,560 +1,313 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Santa's Gift Stack</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #root { height: 100%; width: 100%; overflow: hidden; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    @keyframes snowfall { 0% { transform: translateY(-30px) rotate(0deg); } 100% { transform: translateY(100vh) rotate(360deg); } }
+    @keyframes bounce { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-20px) scale(1.05); } }
+    @keyframes twinkle { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+    @keyframes glow { 0%,100% { box-shadow: 0 0 20px rgba(239,68,68,0.5); } 50% { box-shadow: 0 0 40px rgba(239,68,68,0.8); } }
+    @keyframes shake { 0%,100% { transform: translateX(0) rotate(0deg); } 20% { transform: translateX(-8px) rotate(-1deg); } 40% { transform: translateX(8px) rotate(1deg); } 60% { transform: translateX(-8px) rotate(-1deg); } 80% { transform: translateX(8px) rotate(1deg); } }
+    @keyframes popIn { 0% { transform: scale(0) rotate(-10deg); opacity: 0; } 50% { transform: scale(1.2) rotate(5deg); } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    @keyframes warning { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef } = React;
 
-const BLOCK_WIDTH = 80;
-const BLOCK_HEIGHT = 20;
-const PERFECT_THRESHOLD = 8;
-const BASE_SPEED = 4;
-const MAX_SPEED = 10;
-const WIN_SCORE = 15;
-const MAX_STABILITY = 100;
+    const BLOCK_WIDTH = 80;
+    const BLOCK_HEIGHT = 20;
+    const PERFECT_THRESHOLD = 8;
+    const BASE_SPEED = 4;
+    const MAX_SPEED = 10;
+    const WIN_SCORE = 15;
+    const MAX_STABILITY = 100;
 
-const giftColors = [
-  { bg: '#ef4444', ribbon: '#fcd34d', glow: 'rgba(239,68,68,0.6)' },
-  { bg: '#22c55e', ribbon: '#fff', glow: 'rgba(34,197,94,0.6)' },
-  { bg: '#8b5cf6', ribbon: '#fbbf24', glow: 'rgba(139,92,246,0.6)' },
-  { bg: '#3b82f6', ribbon: '#f0f0f0', glow: 'rgba(59,130,246,0.6)' },
-  { bg: '#ec4899', ribbon: '#fff700', glow: 'rgba(236,72,153,0.6)' },
-  { bg: '#f97316', ribbon: '#fff', glow: 'rgba(249,115,22,0.6)' },
-  { bg: '#06b6d4', ribbon: '#fcd34d', glow: 'rgba(6,182,212,0.6)' },
-  { bg: '#84cc16', ribbon: '#fff', glow: 'rgba(132,204,22,0.6)' },
-];
+    const giftColors = [
+      { bg: '#ef4444', ribbon: '#fcd34d', glow: 'rgba(239,68,68,0.6)' },
+      { bg: '#22c55e', ribbon: '#fff', glow: 'rgba(34,197,94,0.6)' },
+      { bg: '#8b5cf6', ribbon: '#fbbf24', glow: 'rgba(139,92,246,0.6)' },
+      { bg: '#3b82f6', ribbon: '#f0f0f0', glow: 'rgba(59,130,246,0.6)' },
+      { bg: '#ec4899', ribbon: '#fff700', glow: 'rgba(236,72,153,0.6)' },
+      { bg: '#f97316', ribbon: '#fff', glow: 'rgba(249,115,22,0.6)' },
+      { bg: '#06b6d4', ribbon: '#fcd34d', glow: 'rgba(6,182,212,0.6)' },
+      { bg: '#84cc16', ribbon: '#fff', glow: 'rgba(132,204,22,0.6)' },
+    ];
 
-export default function GiftStacker() {
-  const [gameState, setGameState] = useState('intro');
-  const [score, setScore] = useState(0);
-  const [blocks, setBlocks] = useState([]);
-  const [currentBlock, setCurrentBlock] = useState(null);
-  const [particles, setParticles] = useState([]);
-  const [combo, setCombo] = useState(0);
-  const [showPerfect, setShowPerfect] = useState(false);
-  const [perfectText, setPerfectText] = useState('');
-  const [cameraY, setCameraY] = useState(0);
-  const [shake, setShake] = useState(false);
-  const [showMiss, setShowMiss] = useState(false);
-  const [stability, setStability] = useState(MAX_STABILITY);
-  const [wobble, setWobble] = useState(0);
-  const [toppling, setToppling] = useState(false);
-  const [toppleDirection, setToppleDirection] = useState(1);
-  const animationRef = useRef(null);
-  const directionRef = useRef(1);
-  const speedRef = useRef(BASE_SPEED);
-  const gameWidth = 300;
-  const gameHeight = 480;
+    function GiftStacker() {
+      const [gameState, setGameState] = useState('intro');
+      const [score, setScore] = useState(0);
+      const [blocks, setBlocks] = useState([]);
+      const [currentBlock, setCurrentBlock] = useState(null);
+      const [particles, setParticles] = useState([]);
+      const [combo, setCombo] = useState(0);
+      const [showPerfect, setShowPerfect] = useState(false);
+      const [perfectText, setPerfectText] = useState('');
+      const [cameraY, setCameraY] = useState(0);
+      const [shake, setShake] = useState(false);
+      const [showMiss, setShowMiss] = useState(false);
+      const [stability, setStability] = useState(MAX_STABILITY);
+      const [wobble, setWobble] = useState(0);
+      const [toppling, setToppling] = useState(false);
+      const [toppleDirection, setToppleDirection] = useState(1);
+      const animationRef = useRef(null);
+      const directionRef = useRef(1);
+      const speedRef = useRef(BASE_SPEED);
+      const gameWidth = 300;
+      const gameHeight = 480;
 
-  const spawnParticles = (x, y, color, count = 15) => {
-    const newParticles = Array.from({ length: count }, (_, i) => ({
-      id: Date.now() + i + Math.random(),
-      x, y, color,
-      angle: (Math.PI * 2 * i) / count + Math.random() * 0.5,
-      speed: 2 + Math.random() * 4,
-      size: 3 + Math.random() * 6,
-      life: 1,
-    }));
-    setParticles(p => [...p, ...newParticles]);
-  };
+      const spawnParticles = (x, y, color, count = 15) => {
+        const newParticles = Array.from({ length: count }, (_, i) => ({
+          id: Date.now() + i + Math.random(),
+          x, y, color,
+          angle: (Math.PI * 2 * i) / count + Math.random() * 0.5,
+          speed: 2 + Math.random() * 4,
+          size: 3 + Math.random() * 6,
+          life: 1,
+        }));
+        setParticles(p => [...p, ...newParticles]);
+      };
 
-  const startGame = () => {
-    const firstBlock = {
-      x: (gameWidth - BLOCK_WIDTH) / 2,
-      y: 0,
-      colorIndex: 0,
-      offset: 0,
-    };
-    setBlocks([firstBlock]);
-    setCurrentBlock({
-      x: -BLOCK_WIDTH,
-      y: BLOCK_HEIGHT,
-      colorIndex: 1,
-    });
-    setScore(0);
-    setCombo(0);
-    setCameraY(0);
-    setParticles([]);
-    setStability(MAX_STABILITY);
-    setWobble(0);
-    setToppling(false);
-    speedRef.current = BASE_SPEED;
-    directionRef.current = 1;
-    setGameState('playing');
-  };
+      const startGame = () => {
+        const firstBlock = { x: (gameWidth - BLOCK_WIDTH) / 2, y: 0, colorIndex: 0, offset: 0 };
+        setBlocks([firstBlock]);
+        setCurrentBlock({ x: -BLOCK_WIDTH, y: BLOCK_HEIGHT, colorIndex: 1 });
+        setScore(0);
+        setCombo(0);
+        setCameraY(0);
+        setParticles([]);
+        setStability(MAX_STABILITY);
+        setWobble(0);
+        setToppling(false);
+        speedRef.current = BASE_SPEED;
+        directionRef.current = 1;
+        setGameState('playing');
+      };
 
-  // Main game loop
-  useEffect(() => {
-    if (gameState !== 'playing' || !currentBlock) return;
+      useEffect(() => {
+        if (gameState !== 'playing' || !currentBlock) return;
+        let lastTime = performance.now();
+        const animate = (time) => {
+          const delta = Math.min((time - lastTime) / 16, 2);
+          lastTime = time;
+          setCurrentBlock(prev => {
+            if (!prev) return prev;
+            let newX = prev.x + speedRef.current * directionRef.current * delta;
+            if (newX + BLOCK_WIDTH > gameWidth) { directionRef.current = -1; newX = gameWidth - BLOCK_WIDTH; }
+            else if (newX < 0) { directionRef.current = 1; newX = 0; }
+            return { ...prev, x: newX };
+          });
+          animationRef.current = requestAnimationFrame(animate);
+        };
+        animationRef.current = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(animationRef.current);
+      }, [gameState, currentBlock?.colorIndex]);
 
-    let lastTime = performance.now();
-    const animate = (time) => {
-      const delta = Math.min((time - lastTime) / 16, 2);
-      lastTime = time;
-      
-      setCurrentBlock(prev => {
-        if (!prev) return prev;
-        let newX = prev.x + speedRef.current * directionRef.current * delta;
-        if (newX + BLOCK_WIDTH > gameWidth) {
-          directionRef.current = -1;
-          newX = gameWidth - BLOCK_WIDTH;
-        } else if (newX < 0) {
-          directionRef.current = 1;
-          newX = 0;
+      useEffect(() => {
+        if (gameState !== 'playing' || stability >= 70) { setWobble(0); return; }
+        const wobbleAmount = ((70 - stability) / 70) * 3;
+        const interval = setInterval(() => { setWobble(Math.sin(Date.now() / 100) * wobbleAmount); }, 50);
+        return () => clearInterval(interval);
+      }, [gameState, stability]);
+
+      useEffect(() => {
+        if (particles.length === 0) return;
+        const interval = setInterval(() => {
+          setParticles(prev => prev.map(p => ({ ...p, x: p.x + Math.cos(p.angle) * p.speed, y: p.y + Math.sin(p.angle) * p.speed - 2, life: p.life - 0.035, speed: p.speed * 0.96 })).filter(p => p.life > 0));
+        }, 20);
+        return () => clearInterval(interval);
+      }, [particles.length > 0]);
+
+      const triggerTopple = (direction) => {
+        setToppling(true);
+        setToppleDirection(direction);
+        setShake(true);
+        setTimeout(() => { setShake(false); setGameState('gameover'); }, 800);
+      };
+
+      const placeBlock = useCallback(() => {
+        if (!currentBlock || gameState !== 'playing' || toppling) return;
+        const lastBlock = blocks[blocks.length - 1];
+        const overlapStart = Math.max(currentBlock.x, lastBlock.x);
+        const overlapEnd = Math.min(currentBlock.x + BLOCK_WIDTH, lastBlock.x + BLOCK_WIDTH);
+        const overlap = overlapEnd - overlapStart;
+
+        if (overlap <= 0) {
+          setShake(true); setShowMiss(true);
+          setTimeout(() => { setShake(false); setShowMiss(false); }, 500);
+          setGameState('gameover');
+          return;
         }
-        return { ...prev, x: newX };
-      });
-      animationRef.current = requestAnimationFrame(animate);
-    };
-    animationRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationRef.current);
-  }, [gameState, currentBlock?.colorIndex]);
 
-  // Wobble effect based on stability
-  useEffect(() => {
-    if (gameState !== 'playing' || stability >= 70) {
-      setWobble(0);
-      return;
-    }
-    
-    const wobbleAmount = ((70 - stability) / 70) * 3;
-    const interval = setInterval(() => {
-      setWobble(Math.sin(Date.now() / 100) * wobbleAmount);
-    }, 50);
-    return () => clearInterval(interval);
-  }, [gameState, stability]);
+        const offset = currentBlock.x - lastBlock.x;
+        const absOffset = Math.abs(offset);
+        const isPerfect = absOffset < PERFECT_THRESHOLD;
+        const newBlock = { x: currentBlock.x, y: currentBlock.y, colorIndex: currentBlock.colorIndex, offset };
+        const newBlocks = [...blocks, newBlock];
+        setBlocks(newBlocks);
 
-  // Update particles
-  useEffect(() => {
-    if (particles.length === 0) return;
-    const interval = setInterval(() => {
-      setParticles(prev => prev
-        .map(p => ({
-          ...p,
-          x: p.x + Math.cos(p.angle) * p.speed,
-          y: p.y + Math.sin(p.angle) * p.speed - 2,
-          life: p.life - 0.035,
-          speed: p.speed * 0.96,
-        }))
-        .filter(p => p.life > 0)
-      );
-    }, 20);
-    return () => clearInterval(interval);
-  }, [particles.length > 0]);
+        let newStability = stability;
+        if (isPerfect) {
+          newStability = Math.min(MAX_STABILITY, stability + 15);
+          const newCombo = combo + 1;
+          setCombo(newCombo);
+          const texts = ['PERFECT! ⭐', 'AMAZING! ✨', 'INCREDIBLE! 🌟', '🔥 ON FIRE! 🔥', '⚡ SUPERSTAR! ⚡'];
+          setPerfectText(texts[Math.min(newCombo - 1, texts.length - 1)]);
+          setShowPerfect(true);
+          setTimeout(() => setShowPerfect(false), 700);
+          const color = giftColors[currentBlock.colorIndex % giftColors.length];
+          spawnParticles(currentBlock.x + BLOCK_WIDTH / 2, gameHeight - currentBlock.y - cameraY - BLOCK_HEIGHT, color.ribbon, 20);
+          spawnParticles(currentBlock.x + BLOCK_WIDTH / 2, gameHeight - currentBlock.y - cameraY - BLOCK_HEIGHT, '#fff', 12);
+        } else {
+          const stabilityLoss = Math.floor(absOffset / 3);
+          newStability = Math.max(0, stability - stabilityLoss);
+          setCombo(0);
+          const color = giftColors[currentBlock.colorIndex % giftColors.length];
+          spawnParticles(currentBlock.x + BLOCK_WIDTH / 2, gameHeight - currentBlock.y - cameraY - BLOCK_HEIGHT, color.glow, 6);
+        }
+        setStability(newStability);
 
-  const triggerTopple = (direction) => {
-    setToppling(true);
-    setToppleDirection(direction);
-    setShake(true);
-    setTimeout(() => {
-      setShake(false);
-      setGameState('gameover');
-    }, 800);
-  };
+        if (newStability <= 0) { triggerTopple(offset > 0 ? 1 : -1); return; }
+        const totalOffset = newBlocks.reduce((sum, b) => sum + (b.offset || 0), 0);
+        if (Math.abs(totalOffset) > BLOCK_WIDTH * 1.2) { triggerTopple(totalOffset > 0 ? 1 : -1); return; }
 
-  const placeBlock = useCallback(() => {
-    if (!currentBlock || gameState !== 'playing' || toppling) return;
-    const lastBlock = blocks[blocks.length - 1];
-    
-    // Check if there's ANY overlap
-    const overlapStart = Math.max(currentBlock.x, lastBlock.x);
-    const overlapEnd = Math.min(currentBlock.x + BLOCK_WIDTH, lastBlock.x + BLOCK_WIDTH);
-    const overlap = overlapEnd - overlapStart;
+        setScore(score + 1 + (isPerfect ? Math.min(combo + 1, 5) : 0));
+        speedRef.current = Math.min(BASE_SPEED + newBlocks.length * 0.4, MAX_SPEED);
+        const stackHeight = newBlocks.length * BLOCK_HEIGHT;
+        if (stackHeight > gameHeight * 0.45) setCameraY(stackHeight - gameHeight * 0.45);
+        if (newBlocks.length >= WIN_SCORE + 1) { setTimeout(() => setGameState('reveal'), 600); return; }
 
-    // Complete miss - game over
-    if (overlap <= 0) {
-      setShake(true);
-      setShowMiss(true);
-      setTimeout(() => { setShake(false); setShowMiss(false); }, 500);
-      setGameState('gameover');
-      return;
-    }
+        directionRef.current *= -1;
+        setCurrentBlock({ x: directionRef.current > 0 ? -BLOCK_WIDTH : gameWidth, y: newBlocks.length * BLOCK_HEIGHT, colorIndex: newBlocks.length });
+      }, [currentBlock, blocks, gameState, score, combo, cameraY, stability, toppling]);
 
-    // Calculate offset from previous block
-    const offset = currentBlock.x - lastBlock.x;
-    const absOffset = Math.abs(offset);
-    const isPerfect = absOffset < PERFECT_THRESHOLD;
+      const GiftBlock = ({ block, isMoving, index, totalBlocks }) => {
+        const color = giftColors[block.colorIndex % giftColors.length];
+        let toppleRotation = 0;
+        if (toppling && index !== undefined) {
+          const progress = Math.min((Date.now() % 1000) / 500, 1);
+          toppleRotation = toppleDirection * progress * 45 * (index / totalBlocks);
+        }
+        return (
+          <div style={{ position: 'absolute', left: block.x, bottom: block.y - cameraY, width: BLOCK_WIDTH, height: BLOCK_HEIGHT, background: color.bg, borderRadius: 5, boxShadow: isMoving ? `0 8px 20px rgba(0,0,0,0.5), 0 0 20px ${color.glow}` : '0 2px 8px rgba(0,0,0,0.3)', transform: toppling ? `rotate(${toppleRotation}deg)` : 'none', transformOrigin: toppleDirection > 0 ? 'bottom right' : 'bottom left' }}>
+            <div style={{ position: 'absolute', top: 0, bottom: 0, width: 6, left: '50%', transform: 'translateX(-50%)', background: color.ribbon, borderRadius: 2 }} />
+            <div style={{ position: 'absolute', left: 0, right: 0, height: 6, top: '50%', transform: 'translateY(-50%)', background: color.ribbon, borderRadius: 2 }} />
+            <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: 10, height: 10, borderRadius: '50%', background: color.ribbon, boxShadow: `0 0 8px ${color.ribbon}` }} />
+            <div style={{ position: 'absolute', top: 4, left: 8, width: 16, height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.4)' }} />
+          </div>
+        );
+      };
 
-    // Place the block
-    const newBlock = { 
-      x: currentBlock.x, 
-      y: currentBlock.y, 
-      colorIndex: currentBlock.colorIndex,
-      offset: offset,
-    };
-    
-    const newBlocks = [...blocks, newBlock];
-    setBlocks(newBlocks);
+      const stabilityPercent = (stability / MAX_STABILITY) * 100;
+      const stabilityColor = stability > 60 ? 'linear-gradient(to right, #4ade80, #10b981)' : stability > 30 ? 'linear-gradient(to right, #facc15, #f97316)' : 'linear-gradient(to right, #ef4444, #dc2626)';
 
-    // Calculate stability change
-    let newStability = stability;
-    
-    if (isPerfect) {
-      // Perfect placement restores stability
-      newStability = Math.min(MAX_STABILITY, stability + 15);
-      const newCombo = combo + 1;
-      setCombo(newCombo);
-      const texts = ['PERFECT! ⭐', 'AMAZING! ✨', 'INCREDIBLE! 🌟', '🔥 ON FIRE! 🔥', '⚡ SUPERSTAR! ⚡'];
-      setPerfectText(texts[Math.min(newCombo - 1, texts.length - 1)]);
-      setShowPerfect(true);
-      setTimeout(() => setShowPerfect(false), 700);
-      
-      const color = giftColors[currentBlock.colorIndex % giftColors.length];
-      spawnParticles(currentBlock.x + BLOCK_WIDTH / 2, gameHeight - currentBlock.y - cameraY - BLOCK_HEIGHT, color.ribbon, 20);
-      spawnParticles(currentBlock.x + BLOCK_WIDTH / 2, gameHeight - currentBlock.y - cameraY - BLOCK_HEIGHT, '#fff', 12);
-    } else {
-      // Imperfect placement reduces stability based on how far off
-      const stabilityLoss = Math.floor(absOffset / 3);
-      newStability = Math.max(0, stability - stabilityLoss);
-      setCombo(0);
-      
-      const color = giftColors[currentBlock.colorIndex % giftColors.length];
-      spawnParticles(currentBlock.x + BLOCK_WIDTH / 2, gameHeight - currentBlock.y - cameraY - BLOCK_HEIGHT, color.glow, 6);
-    }
-    
-    setStability(newStability);
+      const stars = Array.from({ length: 40 }, (_, i) => ({ id: i, size: 1 + Math.random() * 3, left: Math.random() * 100, top: Math.random() * 100, opacity: 0.2 + Math.random() * 0.6, delay: Math.random() * 3, duration: 2 + Math.random() * 3 }));
+      const snowflakes = Array.from({ length: 35 }, (_, i) => ({ id: i, left: Math.random() * 100, size: 10 + Math.random() * 16, opacity: 0.3 + Math.random() * 0.4, duration: 12 + Math.random() * 18, delay: Math.random() * 15 }));
 
-    // Check if tower topples due to instability
-    if (newStability <= 0) {
-      triggerTopple(offset > 0 ? 1 : -1);
-      return;
-    }
+      return (
+        <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0f172a, #1e1b4b, #3b0764)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative', userSelect: 'none' }}>
+          {stars.map(s => <div key={s.id} style={{ position: 'absolute', width: s.size, height: s.size, borderRadius: '50%', background: '#fff', left: `${s.left}%`, top: `${s.top}%`, opacity: s.opacity, animation: `twinkle ${s.duration}s ease-in-out infinite`, animationDelay: `${s.delay}s` }} />)}
+          {snowflakes.map(s => <div key={`snow-${s.id}`} style={{ position: 'fixed', left: `${s.left}%`, fontSize: s.size, color: '#fff', opacity: s.opacity, animation: `snowfall ${s.duration}s linear infinite`, animationDelay: `${s.delay}s`, pointerEvents: 'none' }}>❄</div>)}
 
-    // Calculate cumulative lean - if tower is leaning too far, it topples
-    const totalOffset = newBlocks.reduce((sum, b) => sum + (b.offset || 0), 0);
-    if (Math.abs(totalOffset) > BLOCK_WIDTH * 1.2) {
-      triggerTopple(totalOffset > 0 ? 1 : -1);
-      return;
-    }
-    
-    const newScore = score + 1 + (isPerfect ? Math.min(combo + 1, 5) : 0);
-    setScore(newScore);
-    
-    speedRef.current = Math.min(BASE_SPEED + newBlocks.length * 0.4, MAX_SPEED);
-
-    // Camera follow
-    const stackHeight = newBlocks.length * BLOCK_HEIGHT;
-    if (stackHeight > gameHeight * 0.45) {
-      setCameraY(stackHeight - gameHeight * 0.45);
-    }
-
-    // Win check
-    if (newBlocks.length >= WIN_SCORE + 1) {
-      setTimeout(() => setGameState('reveal'), 600);
-      return;
-    }
-
-    // Spawn next block
-    directionRef.current *= -1;
-    setCurrentBlock({
-      x: directionRef.current > 0 ? -BLOCK_WIDTH : gameWidth,
-      y: newBlocks.length * BLOCK_HEIGHT,
-      colorIndex: newBlocks.length,
-    });
-  }, [currentBlock, blocks, gameState, score, combo, cameraY, stability, toppling]);
-
-  const GiftBlock = ({ block, isMoving, index, totalBlocks }) => {
-    const color = giftColors[block.colorIndex % giftColors.length];
-    
-    // Calculate topple rotation for this block
-    let toppleRotation = 0;
-    if (toppling && index !== undefined) {
-      const progress = Math.min((Date.now() % 1000) / 500, 1);
-      const heightFactor = (index / totalBlocks);
-      toppleRotation = toppleDirection * progress * 45 * heightFactor;
-    }
-    
-    return (
-      <div
-        className="absolute"
-        style={{
-          left: block.x,
-          bottom: block.y - cameraY,
-          width: BLOCK_WIDTH,
-          height: BLOCK_HEIGHT,
-          background: color.bg,
-          borderRadius: 5,
-          boxShadow: isMoving
-            ? `0 8px 20px rgba(0,0,0,0.5), 0 0 20px ${color.glow}`
-            : '0 2px 8px rgba(0,0,0,0.3)',
-          transition: isMoving ? 'none' : 'box-shadow 0.3s',
-          transform: toppling ? `rotate(${toppleRotation}deg)` : 'none',
-          transformOrigin: toppleDirection > 0 ? 'bottom right' : 'bottom left',
-        }}
-      >
-        <div className="absolute top-0 bottom-0 w-1.5 left-1/2 -translate-x-1/2 rounded-sm" 
-          style={{ background: color.ribbon }} />
-        <div className="absolute left-0 right-0 h-1.5 top-1/2 -translate-y-1/2 rounded-sm" 
-          style={{ background: color.ribbon }} />
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full shadow-lg"
-          style={{ background: color.ribbon, boxShadow: `0 0 8px ${color.ribbon}` }} />
-        <div className="absolute top-1 left-2 w-4 h-1 rounded-full bg-white/40" />
-      </div>
-    );
-  };
-
-  const stabilityPercent = (stability / MAX_STABILITY) * 100;
-  const stabilityColor = stability > 60 ? 'from-green-400 to-emerald-500' : 
-                         stability > 30 ? 'from-yellow-400 to-orange-500' : 
-                         'from-red-500 to-red-600';
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-purple-950 flex flex-col items-center justify-center overflow-hidden relative select-none">
-      {/* Stars */}
-      {[...Array(40)].map((_, i) => (
-        <div key={i} className="absolute rounded-full bg-white"
-          style={{
-            width: 1 + Math.random() * 3,
-            height: 1 + Math.random() * 3,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            opacity: 0.2 + Math.random() * 0.6,
-            animation: `twinkle ${2 + Math.random() * 3}s ease-in-out infinite`,
-            animationDelay: `${Math.random() * 3}s`,
-          }}
-        />
-      ))}
-
-      {/* Snow */}
-      {[...Array(35)].map((_, i) => (
-        <div key={`snow-${i}`} className="fixed text-white pointer-events-none"
-          style={{
-            left: `${Math.random() * 100}%`,
-            fontSize: 10 + Math.random() * 16,
-            opacity: 0.3 + Math.random() * 0.4,
-            animation: `snowfall ${12 + Math.random() * 18}s linear infinite`,
-            animationDelay: `${Math.random() * 15}s`,
-          }}>❄</div>
-      ))}
-
-      <style>{`
-        @keyframes snowfall { 0% { transform: translateY(-30px) rotate(0deg); } 100% { transform: translateY(100vh) rotate(360deg); } }
-        @keyframes bounce { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-20px) scale(1.05); } }
-        @keyframes twinkle { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
-        @keyframes glow { 0%,100% { box-shadow: 0 0 20px rgba(239,68,68,0.5); } 50% { box-shadow: 0 0 40px rgba(239,68,68,0.8); } }
-        @keyframes shake { 0%,100% { transform: translateX(0) rotate(0deg); } 20% { transform: translateX(-8px) rotate(-1deg); } 40% { transform: translateX(8px) rotate(1deg); } 60% { transform: translateX(-8px) rotate(-1deg); } 80% { transform: translateX(8px) rotate(1deg); } }
-        @keyframes popIn { 0% { transform: scale(0) rotate(-10deg); opacity: 0; } 50% { transform: scale(1.2) rotate(5deg); } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
-        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        @keyframes warning { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
-      `}</style>
-
-      {/* INTRO */}
-      {gameState === 'intro' && (
-        <div className="text-center z-20 px-6">
-          <div className="text-8xl mb-6" style={{ animation: 'bounce 2s ease-in-out infinite' }}>🎁</div>
-          <h1 className="text-4xl font-black text-white mb-3" style={{ textShadow: '0 0 40px rgba(255,255,255,0.3)' }}>
-            Santa's Gift Stack
-          </h1>
-          <p className="text-white/70 mb-2 max-w-xs mx-auto">
-            Stack gifts carefully! Misaligned gifts make the tower unstable!
-          </p>
-          <p className="text-yellow-300/90 mb-8 max-w-xs mx-auto font-medium">
-            Stack <span className="font-black text-xl">15</span> gifts to unlock Santa's secret! ✨
-          </p>
-          <button onClick={startGame}
-            className="bg-gradient-to-r from-red-500 via-red-600 to-red-500 text-white text-xl font-bold px-12 py-5 rounded-2xl active:scale-95 transition-transform"
-            style={{ boxShadow: '0 0 50px rgba(239,68,68,0.5), 0 15px 50px rgba(0,0,0,0.3)', animation: 'glow 2s ease-in-out infinite' }}>
-            🎄 Start Stacking! 🎄
-          </button>
-        </div>
-      )}
-
-      {/* GAME */}
-      {(gameState === 'playing' || gameState === 'gameover') && (
-        <div className="relative z-10" style={{ animation: shake ? 'shake 0.4s ease-in-out' : 'none' }}>
-          {/* HUD */}
-          <div className="absolute -top-28 left-0 right-0 px-1">
-            <div className="flex justify-between items-end mb-3">
-              <div className="text-white">
-                <div className="text-xs opacity-50 uppercase tracking-wider mb-1">Gifts</div>
-                <div className="text-4xl font-black leading-none">{Math.min(blocks.length - 1, WIN_SCORE)}</div>
-              </div>
-              <div className="text-center">
-                {combo > 0 && (
-                  <div className="bg-gradient-to-r from-orange-500 to-yellow-400 px-4 py-1.5 rounded-full shadow-lg"
-                    style={{ animation: 'popIn 0.3s ease-out' }}>
-                    <span className="text-white font-black">🔥 {combo}x</span>
-                  </div>
-                )}
-              </div>
-              <div className="text-white text-right">
-                <div className="text-xs opacity-50 uppercase tracking-wider mb-1">Goal</div>
-                <div className="text-4xl font-black leading-none">{WIN_SCORE}</div>
-              </div>
+          {gameState === 'intro' && (
+            <div style={{ textAlign: 'center', zIndex: 20, padding: '0 24px' }}>
+              <div style={{ fontSize: 96, marginBottom: 24, animation: 'bounce 2s ease-in-out infinite' }}>🎁</div>
+              <h1 style={{ fontSize: 36, fontWeight: 900, color: '#fff', marginBottom: 12, textShadow: '0 0 40px rgba(255,255,255,0.3)' }}>Santa's Gift Stack</h1>
+              <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 8, maxWidth: 280, margin: '0 auto 8px' }}>Stack gifts carefully! Misaligned gifts make the tower unstable!</p>
+              <p style={{ color: 'rgba(253,224,71,0.9)', marginBottom: 32, fontWeight: 500 }}>Stack <span style={{ fontWeight: 900, fontSize: 20 }}>15</span> gifts to unlock Santa's secret! ✨</p>
+              <button onClick={startGame} style={{ background: 'linear-gradient(to right, #ef4444, #dc2626, #ef4444)', color: '#fff', fontSize: 20, fontWeight: 700, padding: '20px 48px', borderRadius: 16, border: 'none', cursor: 'pointer', boxShadow: '0 0 50px rgba(239,68,68,0.5), 0 15px 50px rgba(0,0,0,0.3)', animation: 'glow 2s ease-in-out infinite' }}>🎄 Start Stacking! 🎄</button>
             </div>
-            
-            {/* Stability meter */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/60 uppercase tracking-wider">Stability</span>
-              <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden">
-                <div className={`h-full bg-gradient-to-r ${stabilityColor} transition-all duration-300 rounded-full`}
-                  style={{ 
-                    width: `${stabilityPercent}%`,
-                    animation: stability < 30 ? 'warning 0.5s ease-in-out infinite' : 'none'
-                  }} />
+          )}
+
+          {(gameState === 'playing' || gameState === 'gameover') && (
+            <div style={{ position: 'relative', zIndex: 10, animation: shake ? 'shake 0.4s ease-in-out' : 'none' }}>
+              <div style={{ position: 'absolute', top: -112, left: 0, right: 0, padding: '0 4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
+                  <div style={{ color: '#fff' }}>
+                    <div style={{ fontSize: 10, opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Gifts</div>
+                    <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 1 }}>{Math.min(blocks.length - 1, WIN_SCORE)}</div>
+                  </div>
+                  {combo > 0 && <div style={{ background: 'linear-gradient(to right, #f97316, #facc15)', padding: '6px 16px', borderRadius: 20, boxShadow: '0 4px 15px rgba(0,0,0,0.3)', animation: 'popIn 0.3s ease-out' }}><span style={{ color: '#fff', fontWeight: 900 }}>🔥 {combo}x</span></div>}
+                  <div style={{ color: '#fff', textAlign: 'right' }}>
+                    <div style={{ fontSize: 10, opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Goal</div>
+                    <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 1 }}>{WIN_SCORE}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1 }}>Stability</span>
+                  <div style={{ flex: 1, height: 12, background: 'rgba(255,255,255,0.1)', borderRadius: 6, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', background: stabilityColor, width: `${stabilityPercent}%`, borderRadius: 6, transition: 'width 0.3s', animation: stability < 30 ? 'warning 0.5s ease-in-out infinite' : 'none' }} />
+                  </div>
+                  {stability < 40 && <span style={{ color: '#f87171', fontSize: 12, fontWeight: 700, animation: 'warning 0.5s infinite' }}>⚠️</span>}
+                </div>
               </div>
-              {stability < 40 && (
-                <span className="text-red-400 text-xs font-bold animate-pulse">⚠️</span>
+
+              {showPerfect && <div style={{ position: 'absolute', top: '33%', left: '50%', transform: 'translateX(-50%)', zIndex: 30, fontSize: 24, fontWeight: 900, color: '#fde047', whiteSpace: 'nowrap', textShadow: '0 0 30px rgba(253,224,71,0.9)', animation: 'popIn 0.4s ease-out' }}>{perfectText}</div>}
+              {showMiss && <div style={{ position: 'absolute', top: '33%', left: '50%', transform: 'translateX(-50%)', zIndex: 30, fontSize: 24, fontWeight: 900, color: '#f87171', whiteSpace: 'nowrap', textShadow: '0 0 30px rgba(248,113,113,0.9)', animation: 'popIn 0.3s ease-out' }}>MISSED! 💔</div>}
+              {toppling && <div style={{ position: 'absolute', top: '33%', left: '50%', transform: 'translateX(-50%)', zIndex: 30, fontSize: 24, fontWeight: 900, color: '#fb923c', whiteSpace: 'nowrap', textShadow: '0 0 30px rgba(251,146,60,0.9)', animation: 'popIn 0.3s ease-out' }}>TIMBER! 🪵</div>}
+
+              <div onClick={() => gameState === 'playing' && !toppling && placeBlock()} style={{ position: 'relative', width: gameWidth, height: gameHeight, overflow: 'hidden', borderRadius: 24, cursor: 'pointer', background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(30,27,75,0.98) 100%)', boxShadow: '0 0 100px rgba(139,92,246,0.15), inset 0 0 100px rgba(0,0,0,0.5)', border: '3px solid rgba(255,255,255,0.1)', transform: `rotate(${wobble}deg)`, transition: 'transform 0.05s ease-out' }}>
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 160, background: 'linear-gradient(to top, rgba(168,85,247,0.2), transparent)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: 16, left: 16, right: 16, height: 12, background: 'rgba(255,255,255,0.1)', borderRadius: 6, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: 'linear-gradient(to right, #4ade80, #34d399, #2dd4bf)', width: `${(Math.min(blocks.length - 1, WIN_SCORE) / WIN_SCORE) * 100}%`, borderRadius: 6, transition: 'width 0.5s', boxShadow: '0 0 15px rgba(52,211,153,0.6)' }} />
+                </div>
+                {currentBlock && gameState === 'playing' && !toppling && <div style={{ position: 'absolute', left: blocks[blocks.length - 1].x, bottom: blocks[blocks.length - 1].y - cameraY + BLOCK_HEIGHT, width: BLOCK_WIDTH, height: BLOCK_HEIGHT, border: '2px dashed rgba(255,255,255,0.25)', borderRadius: 5, pointerEvents: 'none' }} />}
+                {blocks.map((block, i) => <GiftBlock key={i} block={block} isMoving={false} index={i} totalBlocks={blocks.length} />)}
+                {currentBlock && gameState === 'playing' && !toppling && <GiftBlock block={currentBlock} isMoving={true} />}
+                {particles.map(p => <div key={p.id} style={{ position: 'absolute', left: p.x, top: p.y, width: p.size * p.life, height: p.size * p.life, borderRadius: '50%', background: p.color, opacity: p.life, boxShadow: `0 0 ${p.size * 1.5}px ${p.color}`, transform: 'translate(-50%, -50%)', pointerEvents: 'none' }} />)}
+                {gameState === 'playing' && blocks.length === 1 && !toppling && <div style={{ position: 'absolute', bottom: 112, left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.6)', fontSize: 16, fontWeight: 500, animation: 'float 1.5s ease-in-out infinite' }}>👆 Tap to drop the gift!</div>}
+              </div>
+
+              {gameState === 'gameover' && !toppling && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: 24, zIndex: 20 }}>
+                  <div style={{ fontSize: 64, marginBottom: 16 }}>{stability <= 0 ? '🏗️' : '😢'}</div>
+                  <h2 style={{ fontSize: 28, fontWeight: 900, color: '#fff', marginBottom: 8 }}>{stability <= 0 ? 'Tower Collapsed!' : 'Oops!'}</h2>
+                  <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>{stability <= 0 ? 'The tower was too unstable!' : 'The gift missed the stack!'}</p>
+                  <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: 24 }}>You stacked <span style={{ color: '#fde047', fontWeight: 700, fontSize: 20 }}>{blocks.length - 1}</span> gifts</p>
+                  <button onClick={startGame} style={{ background: 'linear-gradient(to right, #22c55e, #10b981)', color: '#fff', fontWeight: 700, padding: '16px 48px', borderRadius: 16, border: 'none', cursor: 'pointer', fontSize: 18, boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>Try Again! 🎁</button>
+                </div>
               )}
             </div>
-          </div>
-
-          {/* Perfect/Miss text */}
-          {showPerfect && (
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 z-30 text-2xl font-black text-yellow-300 whitespace-nowrap"
-              style={{ textShadow: '0 0 30px rgba(253,224,71,0.9)', animation: 'popIn 0.4s ease-out' }}>
-              {perfectText}
-            </div>
-          )}
-          {showMiss && (
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 z-30 text-2xl font-black text-red-400 whitespace-nowrap"
-              style={{ textShadow: '0 0 30px rgba(248,113,113,0.9)', animation: 'popIn 0.3s ease-out' }}>
-              MISSED! 💔
-            </div>
-          )}
-          {toppling && (
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 z-30 text-2xl font-black text-orange-400 whitespace-nowrap"
-              style={{ textShadow: '0 0 30px rgba(251,146,60,0.9)', animation: 'popIn 0.3s ease-out' }}>
-              TIMBER! 🪵
-            </div>
           )}
 
-          {/* Game area */}
-          <div onClick={() => gameState === 'playing' && !toppling && placeBlock()}
-            className="relative overflow-hidden rounded-3xl cursor-pointer"
-            style={{
-              width: gameWidth, height: gameHeight,
-              background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(30,27,75,0.98) 100%)',
-              boxShadow: '0 0 100px rgba(139,92,246,0.15), inset 0 0 100px rgba(0,0,0,0.5)',
-              border: '3px solid rgba(255,255,255,0.1)',
-              transform: `rotate(${wobble}deg)`,
-              transition: 'transform 0.05s ease-out',
-            }}>
-            
-            {/* Ground glow */}
-            <div className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none"
-              style={{ background: 'linear-gradient(to top, rgba(168,85,247,0.2), transparent)' }} />
-            
-            {/* Progress bar */}
-            <div className="absolute top-4 left-4 right-4 h-3 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
-              <div className="h-full bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 transition-all duration-500 rounded-full relative"
-                style={{ 
-                  width: `${(Math.min(blocks.length - 1, WIN_SCORE) / WIN_SCORE) * 100}%`, 
-                  boxShadow: '0 0 15px rgba(52,211,153,0.6)' 
-                }}>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+          {gameState === 'reveal' && (
+            <div style={{ textAlign: 'center', zIndex: 20, padding: '0 16px', maxWidth: 360 }}>
+              <div style={{ fontSize: 72, marginBottom: 12, animation: 'bounce 2s ease-in-out infinite' }}>🏆</div>
+              <h1 style={{ fontSize: 36, fontWeight: 900, color: '#fde047', marginBottom: 24, textShadow: '0 0 30px rgba(253,224,71,0.6)' }}>Amazing Job!</h1>
+              <div style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(12px)', borderRadius: 24, padding: 24, border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
+                <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: 20, fontSize: 18 }}>You stacked all <span style={{ color: '#fde047', fontWeight: 700, fontSize: 24 }}>{WIN_SCORE}</span> gifts! 🎉</p>
+                <div style={{ background: 'linear-gradient(135deg, rgba(127,29,29,0.3), rgba(20,83,45,0.3))', borderRadius: 16, padding: 24, border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div style={{ fontSize: 64, marginBottom: 16 }}>🎅</div>
+                  <p style={{ fontSize: 24, color: '#fff', fontWeight: 700, marginBottom: 16 }}>Santa's Secret Message</p>
+                  <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 18, lineHeight: 1.6 }}>Santa may not come down chimneys...</p>
+                  <p style={{ color: '#fde047', fontWeight: 700, fontSize: 20, margin: '8px 0 16px' }}>But Santa IS real!</p>
+                  <p style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.6 }}>Santa is <span style={{ color: '#f9a8d4', fontWeight: 600 }}>Mom & Dad</span>, <span style={{ color: '#93c5fd', fontWeight: 600 }}>Grandma & Grandpa</span>, and everyone who <span style={{ color: '#fca5a5', fontWeight: 600 }}>loves you</span>.</p>
+                  <p style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, marginTop: 12 }}>Santa is the <span style={{ color: '#86efac', fontWeight: 600 }}>joy of giving</span>, the <span style={{ color: '#fdba74', fontWeight: 600 }}>warmth of family</span>, and the <span style={{ color: '#c4b5fd', fontWeight: 600 }}>magic we create together</span>.</p>
+                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <p style={{ fontSize: 24, fontWeight: 900, color: '#fff' }}>Now <span style={{ color: '#fde047' }}>YOU</span> can be Santa too!</p>
+                    <p style={{ fontSize: 32, marginTop: 8 }}>🎁❤️✨</p>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            {/* Landing zone indicator */}
-            {currentBlock && gameState === 'playing' && !toppling && (
-              <div className="absolute pointer-events-none transition-all duration-75"
-                style={{
-                  left: blocks[blocks.length - 1].x,
-                  bottom: blocks[blocks.length - 1].y - cameraY + BLOCK_HEIGHT,
-                  width: BLOCK_WIDTH,
-                  height: BLOCK_HEIGHT,
-                  border: '2px dashed rgba(255,255,255,0.25)',
-                  borderRadius: 5,
-                }} />
-            )}
-
-            {/* Blocks */}
-            {blocks.map((block, i) => (
-              <GiftBlock key={i} block={block} isMoving={false} index={i} totalBlocks={blocks.length} />
-            ))}
-            {currentBlock && gameState === 'playing' && !toppling && (
-              <GiftBlock block={currentBlock} isMoving={true} />
-            )}
-            
-            {/* Particles */}
-            {particles.map(p => (
-              <div key={p.id} className="absolute rounded-full pointer-events-none"
-                style={{
-                  left: p.x, top: p.y,
-                  width: p.size * p.life, height: p.size * p.life,
-                  background: p.color,
-                  opacity: p.life,
-                  boxShadow: `0 0 ${p.size * 1.5}px ${p.color}`,
-                  transform: 'translate(-50%, -50%)',
-                }} />
-            ))}
-
-            {/* Tap hint */}
-            {gameState === 'playing' && blocks.length === 1 && !toppling && (
-              <div className="absolute bottom-28 left-1/2 -translate-x-1/2 text-white/60 text-base font-medium"
-                style={{ animation: 'float 1.5s ease-in-out infinite' }}>
-                👆 Tap to drop the gift!
-              </div>
-            )}
-          </div>
-
-          {/* Game Over */}
-          {gameState === 'gameover' && !toppling && (
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center rounded-3xl z-20">
-              <div className="text-6xl mb-4">{stability <= 0 ? '🏗️' : '😢'}</div>
-              <h2 className="text-3xl font-black text-white mb-2">
-                {stability <= 0 ? 'Tower Collapsed!' : 'Oops!'}
-              </h2>
-              <p className="text-white/60 mb-2">
-                {stability <= 0 ? 'The tower was too unstable!' : 'The gift missed the stack!'}
-              </p>
-              <p className="text-white/80 mb-6">You stacked <span className="text-yellow-300 font-bold text-xl">{blocks.length - 1}</span> gifts</p>
-              <button onClick={startGame}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold px-12 py-4 rounded-2xl active:scale-95 transition-transform text-lg"
-                style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
-                Try Again! 🎁
-              </button>
+              <button onClick={startGame} style={{ marginTop: 24, background: 'linear-gradient(to right, #a855f7, #ec4899, #a855f7)', color: '#fff', fontWeight: 700, padding: '16px 48px', borderRadius: 16, border: 'none', cursor: 'pointer', fontSize: 18, boxShadow: '0 0 40px rgba(168,85,247,0.4), 0 10px 40px rgba(0,0,0,0.3)' }}>🌟 Play Again 🌟</button>
             </div>
           )}
         </div>
-      )}
+      );
+    }
 
-      {/* REVEAL */}
-      {gameState === 'reveal' && (
-        <div className="text-center z-20 px-4 max-w-sm">
-          <div className="text-7xl mb-3" style={{ animation: 'bounce 2s ease-in-out infinite' }}>🏆</div>
-          <h1 className="text-4xl font-black text-yellow-300 mb-6" style={{ textShadow: '0 0 30px rgba(253,224,71,0.6)' }}>
-            Amazing Job!
-          </h1>
-          
-          <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
-            <p className="text-white/80 mb-5 text-lg">
-              You stacked all <span className="text-yellow-300 font-bold text-2xl">{WIN_SCORE}</span> gifts! 🎉
-            </p>
-            
-            <div className="bg-gradient-to-br from-red-900/30 to-green-900/30 rounded-2xl p-6 border border-white/10">
-              <div className="text-6xl mb-4">🎅</div>
-              <p className="text-2xl text-white font-bold mb-4">
-                Santa's Secret Message
-              </p>
-              <p className="text-white/90 text-lg leading-relaxed">
-                Santa may not come down chimneys...
-              </p>
-              <p className="text-yellow-300 font-bold text-xl mt-2 mb-4">
-                But Santa IS real!
-              </p>
-              <p className="text-white/85 leading-relaxed">
-                Santa is <span className="text-pink-300 font-semibold">Mom</span>,{' '}
-                <span className="text-blue-300 font-semibold">Your Sibling</span>, and everyone else who{' '}
-                <span className="text-red-300 font-semibold">loves you</span>.
-              </p>
-              <p className="text-white/85 leading-relaxed mt-3">
-                Santa is the <span className="text-green-300 font-semibold">joy of giving</span>, the{' '}
-                <span className="text-orange-300 font-semibold">warmth of family</span>, and the{' '}
-                <span className="text-purple-300 font-semibold">magic we create together</span>.
-              </p>
-              <div className="mt-5 pt-4 border-t border-white/10">
-                <p className="text-2xl font-black text-white">
-                  Now <span className="text-yellow-300">YOU</span> can be Santa too!
-                </p>
-                <p className="text-3xl mt-2">🎁❤️✨</p>
-              </div>
-            </div>
-          </div>
-
-          <button onClick={startGame}
-            className="mt-6 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 text-white font-bold px-12 py-4 rounded-2xl active:scale-95 transition-transform text-lg"
-            style={{ boxShadow: '0 0 40px rgba(168,85,247,0.4), 0 10px 40px rgba(0,0,0,0.3)' }}>
-            🌟 Play Again 🌟
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
+    ReactDOM.createRoot(document.getElementById('root')).render(<GiftStacker />);
+  </script>
+</body>
+</html>
