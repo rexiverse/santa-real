@@ -29,8 +29,8 @@
     const BLOCK_WIDTH = 80;
     const BLOCK_HEIGHT = 20;
     const PERFECT_THRESHOLD = 8;
-    const BASE_SPEED = 4;
-    const MAX_SPEED = 10;
+    const BASE_SPEED = 3;
+    const MAX_SPEED = 7;
     const WIN_SCORE = 15;
     const MAX_STABILITY = 100;
 
@@ -133,7 +133,7 @@
         setToppling(true);
         setToppleDirection(direction);
         setShake(true);
-        setTimeout(() => { setShake(false); setGameState('gameover'); }, 800);
+        setTimeout(() => { setShake(false); }, 800);
       };
 
       const placeBlock = useCallback(() => {
@@ -255,7 +255,12 @@
 
               {showPerfect && <div style={{ position: 'absolute', top: '33%', left: '50%', transform: 'translateX(-50%)', zIndex: 30, fontSize: 24, fontWeight: 900, color: '#fde047', whiteSpace: 'nowrap', textShadow: '0 0 30px rgba(253,224,71,0.9)', animation: 'popIn 0.4s ease-out' }}>{perfectText}</div>}
               {showMiss && <div style={{ position: 'absolute', top: '33%', left: '50%', transform: 'translateX(-50%)', zIndex: 30, fontSize: 24, fontWeight: 900, color: '#f87171', whiteSpace: 'nowrap', textShadow: '0 0 30px rgba(248,113,113,0.9)', animation: 'popIn 0.3s ease-out' }}>MISSED! 💔</div>}
-              {toppling && <div style={{ position: 'absolute', top: '33%', left: '50%', transform: 'translateX(-50%)', zIndex: 30, fontSize: 24, fontWeight: 900, color: '#fb923c', whiteSpace: 'nowrap', textShadow: '0 0 30px rgba(251,146,60,0.9)', animation: 'popIn 0.3s ease-out' }}>TIMBER! 🪵</div>}
+              {toppling && <div style={{ position: 'absolute', top: '25%', left: '50%', transform: 'translateX(-50%)', zIndex: 30, textAlign: 'center', animation: 'popIn 0.3s ease-out' }}>
+                <div style={{ fontSize: 28, fontWeight: 900, color: '#fb923c', whiteSpace: 'nowrap', textShadow: '0 0 30px rgba(251,146,60,0.9)', marginBottom: 8 }}>TIMBER! 🪵</div>
+                <div style={{ fontSize: 18, color: '#fff', marginBottom: 16 }}>Oh no, the tower collapsed!</div>
+                <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>You stacked <span style={{ color: '#fde047', fontWeight: 700 }}>{blocks.length - 1}</span> gifts</div>
+                <button onClick={startGame} style={{ background: 'linear-gradient(to right, #22c55e, #10b981)', color: '#fff', fontWeight: 700, padding: '14px 36px', borderRadius: 14, border: 'none', cursor: 'pointer', fontSize: 16, boxShadow: '0 8px 30px rgba(0,0,0,0.4)' }}>Try Again! 🎁</button>
+              </div>}
 
               <div onClick={() => gameState === 'playing' && !toppling && placeBlock()} style={{ position: 'relative', width: gameWidth, height: gameHeight, overflow: 'hidden', borderRadius: 24, cursor: 'pointer', background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(30,27,75,0.98) 100%)', boxShadow: '0 0 100px rgba(139,92,246,0.15), inset 0 0 100px rgba(0,0,0,0.5)', border: '3px solid rgba(255,255,255,0.1)', transform: `rotate(${wobble}deg)`, transition: 'transform 0.05s ease-out' }}>
                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 160, background: 'linear-gradient(to top, rgba(168,85,247,0.2), transparent)', pointerEvents: 'none' }} />
